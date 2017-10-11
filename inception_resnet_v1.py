@@ -403,11 +403,16 @@ def InceptionResNetV1(include_top=True,
     
     print("TOP1:", x._keras_shape)
     # Final convolution block
-    #x = conv2d_bn(x, 128, 1, name='Conv2d_7b_1x1')                         
+    #x = conv2d_bn(x, 128, 1, strides=2, use_bias=False, padding='valid', name='Bottleneck', activation=None)                         
     #----->
 
     if include_top:
+        
         # Classification block
+        
+        #x = GlobalAveragePooling2D(name='avg_pool')(x)
+        #x = Dense(classes, activation='softmax', name='predictions')(x)
+        
         x = GlobalAveragePooling2D(name='AvgPool')(x)
         x = Dropout(1.0 - dropout_keep_prob, name='Dropout')(x)
         x = Dense(classes, name='Logits')(x)
@@ -448,13 +453,13 @@ def InceptionResNetV1(include_top=True,
             weights_path = get_file(weights_filename,
                                     BASE_WEIGHT_URL + weights_filename,
                                     cache_subdir='models',
-                                    md5_hash='e693bd0210a403b3192acc6073ad2e96')
+                                    md5_hash='b183cf243925b74bac6d617a5dc1293d')
         else:
             weights_filename = 'inception_resnet_v1_weights_tf_dim_ordering_tf_kernels_notop.h5'
             weights_path = get_file(weights_filename,
                                     BASE_WEIGHT_URL + weights_filename,
                                     cache_subdir='models',
-                                    md5_hash='d19885ff4a710c122648d3b5c3b684e4')
+                                    md5_hash='9126ac1e7f4274c03399923b6b6e6d44')
         model.load_weights(weights_path)
 
     return model
