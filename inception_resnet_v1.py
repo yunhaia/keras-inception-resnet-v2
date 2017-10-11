@@ -126,7 +126,7 @@ def _generate_layer_name(name, branch_idx=None, prefix=None):
     return '_'.join((prefix, 'Branch', str(branch_idx), name))
 
 
-def _inception_resnet_block(x, scale, block_type, block_idx, activation='relu', pname):
+def _inception_resnet_block(x, scale, block_type, block_idx, activation='relu', pname=None):
     """Adds a Inception-ResNet block.
 
     This function builds 3 types of Inception-ResNet blocks mentioned
@@ -170,20 +170,20 @@ def _inception_resnet_block(x, scale, block_type, block_idx, activation='relu', 
         branch_1 = conv2d_bn(x, 32, 1, name=name_fmt('Conv2d_0a_1x1', 1))
         branch_1 = conv2d_bn(branch_1, 32, 3, name=name_fmt('Conv2d_0b_3x3', 1))
         branch_2 = conv2d_bn(x, 32, 1, name=name_fmt('Conv2d_0a_1x1', 2))
-        branch_2 = conv2d_bn(branch_2, 48, 3, name=name_fmt('Conv2d_0b_3x3', 2))
-        branch_2 = conv2d_bn(branch_2, 64, 3, name=name_fmt('Conv2d_0c_3x3', 2))
+        branch_2 = conv2d_bn(branch_2, 32, 3, name=name_fmt('Conv2d_0b_3x3', 2))
+        branch_2 = conv2d_bn(branch_2, 32, 3, name=name_fmt('Conv2d_0c_3x3', 2))
         branches = [branch_0, branch_1, branch_2]
     elif block_type == 'Block17':
-        branch_0 = conv2d_bn(x, 192, 1, name=name_fmt('Conv2d_1x1', 0))
+        branch_0 = conv2d_bn(x, 128, 1, name=name_fmt('Conv2d_1x1', 0))
         branch_1 = conv2d_bn(x, 128, 1, name=name_fmt('Conv2d_0a_1x1', 1))
-        branch_1 = conv2d_bn(branch_1, 160, [1, 7], name=name_fmt('Conv2d_0b_1x7', 1))
-        branch_1 = conv2d_bn(branch_1, 192, [7, 1], name=name_fmt('Conv2d_0c_7x1', 1))
+        branch_1 = conv2d_bn(branch_1, 128, [1, 7], name=name_fmt('Conv2d_0b_1x7', 1))
+        branch_1 = conv2d_bn(branch_1, 128, [7, 1], name=name_fmt('Conv2d_0c_7x1', 1))
         branches = [branch_0, branch_1]
     elif block_type == 'Block8':
         branch_0 = conv2d_bn(x, 192, 1, name=name_fmt('Conv2d_1x1', 0))
         branch_1 = conv2d_bn(x, 192, 1, name=name_fmt('Conv2d_0a_1x1', 1))
-        branch_1 = conv2d_bn(branch_1, 224, [1, 3], name=name_fmt('Conv2d_0b_1x3', 1))
-        branch_1 = conv2d_bn(branch_1, 256, [3, 1], name=name_fmt('Conv2d_0c_3x1', 1))
+        branch_1 = conv2d_bn(branch_1, 192, [1, 3], name=name_fmt('Conv2d_0b_1x3', 1))
+        branch_1 = conv2d_bn(branch_1, 192, [3, 1], name=name_fmt('Conv2d_0c_3x1', 1))
         branches = [branch_0, branch_1]
     else:
         raise ValueError('Unknown Inception-ResNet block type. '
@@ -207,11 +207,11 @@ def _inception_resnet_block(x, scale, block_type, block_idx, activation='relu', 
 
 
 def InceptionResNetV1(include_top=True,
-                      weights='imagenet',
+                      weights='facenet',
                       input_tensor=None,
                       input_shape=None,
                       pooling=None,
-                      classes=1000,
+                      classes=44051,
                       dropout_keep_prob=0.8):
     """Instantiates the Inception-ResNet v2 architecture.
 
@@ -265,14 +265,14 @@ def InceptionResNetV1(include_top=True,
         ValueError: in case of invalid argument for `weights`,
             or invalid input shape.
     """
-    if weights not in {'imagenet', None}:
+    if weights not in {'facent', None}:
         raise ValueError('The `weights` argument should be either '
-                         '`None` (random initialization) or `imagenet` '
+                         '`None` (random initialization) or `facent` '
                          '(pre-training on ImageNet).')
 
-    if weights == 'imagenet' and include_top and classes != 1000:
-        raise ValueError('If using `weights` as imagenet with `include_top`'
-                         ' as true, `classes` should be 1000')
+    if weights == 'facent' and include_top and classes != 44051:
+        raise ValueError('If using `weights` as facent with `include_top`'
+                         ' as true, `classes` should be 44051')
 
     # Determine proper input shape
     input_shape = _obtain_input_shape(
@@ -293,14 +293,21 @@ def InceptionResNetV1(include_top=True,
 
     # Stem block: 35 x 35 x 192
     x = conv2d_bn(img_input, 32, 3, strides=2, padding='valid', name='Conv2d_1a_3x3')
+    print("TOP1:", x._keras_shape)
     x = conv2d_bn(x, 32, 3, padding='valid', name='Conv2d_2a_3x3')
+    print("TOP2:", x._keras_shape)
     x = conv2d_bn(x, 64, 3, name='Conv2d_2b_3x3')
+    print("TOP3:", x._keras_shape)
     x = MaxPooling2D(3, strides=2, name='MaxPool_3a_3x3')(x)
+    print("TOP4:", x._keras_shape)
     x = conv2d_bn(x, 80, 1, padding='valid', name='Conv2d_3b_1x1')
+    print("TOP5:", x._keras_shape)
     x = conv2d_bn(x, 192, 3, padding='valid', name='Conv2d_4a_3x3')
     
+    print("TOP6:", x._keras_shape)
     #----->
     x = conv2d_bn(x, 256, 3, strides=2, padding='valid', name='Conv2d_4b_3x3')
+    print("TOP5:35 x 35 x 256:", x._keras_shape)
     
     # 5x Block35 (Inception-ResNet-A block): 35 x 35 x 320 
     # 5x Inception-resnet-A
@@ -308,10 +315,12 @@ def InceptionResNetV1(include_top=True,
         x = _inception_resnet_block(x,
                                     scale=0.17,
                                     block_type='Block35',
-                                    block_idx=block_idx, 
-                                    pname='Mixed_5a')
-                                     
+                                    block_idx=block_idx)
+    
+    print("TOP6:", x._keras_shape)
+
     # Mixed 6a (Reduction-A block): 17 x 17 x 1088
+    channel_axis = 1 if K.image_data_format() == 'channels_first' else 3
     name_fmt = partial(_generate_layer_name, prefix='Mixed_6a')
     branch_0 = conv2d_bn(x,
                          384,
@@ -319,10 +328,10 @@ def InceptionResNetV1(include_top=True,
                          strides=2,
                          padding='valid',
                          name=name_fmt('Conv2d_1a_3x3', 0))
-    branch_1 = conv2d_bn(x, 256, 1, name=name_fmt('Conv2d_0a_1x1', 1))
-    branch_1 = conv2d_bn(branch_1, 256, 3, name=name_fmt('Conv2d_0b_3x3', 1))
+    branch_1 = conv2d_bn(x, 192, 1, name=name_fmt('Conv2d_0a_1x1', 1))
+    branch_1 = conv2d_bn(branch_1, 192, 3, name=name_fmt('Conv2d_0b_3x3', 1))
     branch_1 = conv2d_bn(branch_1,
-                         384,
+                         256,
                          3,
                          strides=2,
                          padding='valid',
@@ -333,7 +342,7 @@ def InceptionResNetV1(include_top=True,
                                name=name_fmt('MaxPool_1a_3x3', 2))(x)
     branches = [branch_0, branch_1, branch_pool]
     x = Concatenate(axis=channel_axis, name='Mixed_6a')(branches)                               
-    
+    print("TOP7:", x._keras_shape)
     
     
                                     
@@ -342,10 +351,10 @@ def InceptionResNetV1(include_top=True,
         x = _inception_resnet_block(x,
                                     scale=0.1,
                                     block_type='Block17',
-                                    block_idx=block_idx,
-                                    pname='Mixed_6b')                                
+                                    block_idx=block_idx
+                                    )                                
     
-    
+    print("TOP8:", x._keras_shape)
     # Mixed 7a (Reduction-B block): 8 x 8 x 2080
     name_fmt = partial(_generate_layer_name, prefix='Mixed_7a')
     branch_0 = conv2d_bn(x, 256, 1, name=name_fmt('Conv2d_0a_1x1', 0))
@@ -357,15 +366,15 @@ def InceptionResNetV1(include_top=True,
                          name=name_fmt('Conv2d_1a_3x3', 0))
     branch_1 = conv2d_bn(x, 256, 1, name=name_fmt('Conv2d_0a_1x1', 1))
     branch_1 = conv2d_bn(branch_1,
-                         288,
+                         256,
                          3,
                          strides=2,
                          padding='valid',
                          name=name_fmt('Conv2d_1a_3x3', 1))
     branch_2 = conv2d_bn(x, 256, 1, name=name_fmt('Conv2d_0a_1x1', 2))
-    branch_2 = conv2d_bn(branch_2, 288, 3, name=name_fmt('Conv2d_0b_3x3', 2))
+    branch_2 = conv2d_bn(branch_2, 256, 3, name=name_fmt('Conv2d_0b_3x3', 2))
     branch_2 = conv2d_bn(branch_2,
-                         320,
+                         256,
                          3,
                          strides=2,
                          padding='valid',
@@ -377,24 +386,25 @@ def InceptionResNetV1(include_top=True,
     branches = [branch_0, branch_1, branch_2, branch_pool]
     x = Concatenate(axis=channel_axis, name='Mixed_7a')(branches)
     
+    print("TOP9:", x._keras_shape)
     # 5x Block8 (Inception-ResNet-C block): 8 x 8 x 2080
     for block_idx in range(1, 6):
         x = _inception_resnet_block(x,
                                     scale=0.2,
                                     block_type='Block8',
-                                    block_idx=block_idx,
-                                    pname='Mixed_8a')
+                                    block_idx=block_idx)
     
+    print("TOP0:", x._keras_shape)
     x = _inception_resnet_block(x,
                                 scale=1.,
                                 activation=None,
                                 block_type='Block8',
-                                block_idx=6,
-                                pname='Mixed_8b')
-                                
-    #----->
+                                block_idx=6)
     
-
+    print("TOP1:", x._keras_shape)
+    # Final convolution block
+    #x = conv2d_bn(x, 128, 1, name='Conv2d_7b_1x1')                         
+    #----->
 
     if include_top:
         # Classification block
@@ -402,12 +412,15 @@ def InceptionResNetV1(include_top=True,
         x = Dropout(1.0 - dropout_keep_prob, name='Dropout')(x)
         x = Dense(classes, name='Logits')(x)
         x = Activation('softmax', name='Predictions')(x)
+        print("TOP-a:", x._keras_shape)
     else:
         if pooling == 'avg':
             x = GlobalAveragePooling2D(name='AvgPool')(x)
         elif pooling == 'max':
             x = GlobalMaxPooling2D(name='MaxPool')(x)
-
+        print("TOP-b:", x._keras_shape)
+    
+    print("TOP2:", x._keras_shape)
     # Ensure that the model takes into account
     # any potential predecessors of `input_tensor`
     if input_tensor is not None:
@@ -417,9 +430,9 @@ def InceptionResNetV1(include_top=True,
 
     # Create model
     model = Model(inputs, x, name='inception_resnet_v1')
-
+    
     # Load weights
-    if weights == 'imagenet':
+    if weights == 'facenet':
         if K.image_data_format() == 'channels_first':
             if K.backend() == 'tensorflow':
                 warnings.warn('You are using the TensorFlow backend, yet you '
